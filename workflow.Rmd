@@ -1,0 +1,102 @@
+---
+title: "edax"
+output: html_document
+date: "2026-03-24"
+---
+####SCUMMING
+
+```{r}
+
+library(readxl)
+scumming <- read_excel("scumming.xlsx", sheet = "Scumming")
+
+library(tidyverse)
+d_scm <-   scumming |> column_to_rownames(var = "Sample")
+  
+```
+
+
+```{r}
+library(compositions)
+library(zCompositions)
+library(factoextra)
+library(FactoMineR)
+
+# edax = your data (rows = samples, cols = elements)
+
+# 1. Replace zeros
+edax_nozeros <- cmultRepl(d_scm, method = "CZM")
+
+# 2. CLR transform
+edax_clr <- clr(edax_nozeros)
+
+# 3. PCA
+pca_res_scm <- PCA(edax_clr, graph = T)
+
+# 4. Plot
+fviz_pca_biplot(pca_res)
+```
+
+####PLACUTE
+```{r}
+Compozitii_EDX_finale <- read_excel("Compozitii EDX_finale.xlsx", sheet = "Pigmenți")
+
+d_pigm <- Compozitii_EDX_finale |> 
+  column_to_rownames(var = "Sample") |>
+  cmultRepl(method = "CZM") |> 
+  clr() |>
+```
+
+
+#Clustering
+
+##Calculate clustering tendency
+
+```{r}
+
+gradient_col <- list(low = "black", mid = "white",high = "red")
+
+
+d_pigm_centr <- as.data.frame(scale(d_pigm[!row.names(d_pigm) %in% c("Pyrolusite", "Ghoetit", "Hematite", "Magnetite", "Cryptomelane", "Red Clay"), ]))
+
+library(hopkins)
+hopkins::hopkins(d_pigm_centr, m = nrow(d_pigm_centr) / 2)
+
+fviz_dist(dist(d_pigm_centr), show_labels = T, gradient = gradient_col) +
+  labs(title = "Grafic 4. Tendințe de grupare",
+       subtitle = "Indice Hopkins: 0.819553") 
+  
+```
+
+##Agglomerative Hierachical Clustering
+```{r}
+clust_pigm <- eclust(d_pigm_centr,                       
+                                      FUNcluster = "agnes",             
+                                      hc_metric = "minkowski",         
+                                      hc_method = "ward.D2")           
+clusts_indet <- fviz_dend(clust_pigm) +
+  ggtitle("Grafic 5. Dendrograma clusterelor")
+clusts_indet
+
+library(clValid)
+distance_matrix <- psych::distance(d_pigm_centr)
+distance_matrix <- as.matrix(distance_matrix)
+internal_validation <- clValid(distance_matrix, 2:8, 
+                               clMethods = c("agnes"),
+                               validation = c("internal", "stability"))
+summary(internal_validation)
+```
+
+
+```{r}
+as.data.frame() 
+
+pca_res_pigm <- PCA(d_pigm, 
+                    graph = F, 
+                    ind.sup = which(row.names(d_pigm) %in% c("Pyrolusite", "Ghoetit", "Hematite", "Magnetite", "Cryptomelane", "Red Clay")))
+
+fviz_pca_biplot(pca_res_pigm, label = "all", invisible = "ind.sup") 
+
+
+```
+
